@@ -5,7 +5,6 @@ import { prisma } from "./prisma";
 import type { SessionUser } from "@/types/auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  basePath: "/projectum-erp/api/auth",
   trustHost: true,
   providers: [
     Credentials({
