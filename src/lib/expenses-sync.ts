@@ -121,6 +121,45 @@ function isPaidStatus(status: string | null | undefined): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Expense category classification
+// ---------------------------------------------------------------------------
+
+function classifyExpenseCategory(description: string): string {
+  const d = description.toLowerCase();
+
+  // Aluguel
+  if (d.includes("aluguel")) return "ALUGUEL";
+  // Energia / Utilities
+  if (d.includes("cemig") || d.includes("energia") || d.includes("luz")) return "ENERGIA";
+  // Água
+  if (d.includes("copasa") || d.includes("água") || d.includes("agua")) return "ÁGUA";
+  // Internet / Telecom
+  if (d.includes("internet") || d.includes("telefone") || d.includes("tel ") || d.includes("vivo") || d.includes("claro") || d.includes("tim") || d.includes("oi ")) return "TELECOM";
+  // Impostos / Tributos
+  if (d.includes("simples nacional") || d.includes("guia simples") || d.includes("imposto") || d.includes("darf") || d.includes("fgts") || d.includes("inss") || d.includes("gps") || d.includes("das ") || d.includes("icms") || d.includes("iss")) return "IMPOSTOS";
+  // Banco / Financeiro
+  if (d.includes("bdmg") || d.includes("empréstimo") || d.includes("emprestimo") || d.includes("financiamento") || d.includes("parcela banco") || d.includes("juros") || d.includes("tarifa")) return "FINANCEIRO";
+  // Fornecedores / Materiais
+  if (d.includes("flor") || d.includes("jc decor") || d.includes("material") || d.includes("eletro") || d.includes("ferrament")) return "FORNECEDORES";
+  // Transporte / Frete
+  if (d.includes("caminhão") || d.includes("caminhao") || d.includes("frete") || d.includes("transporte") || d.includes("combustível") || d.includes("combustivel") || d.includes("gasolina") || d.includes("diesel")) return "TRANSPORTE";
+  // Salários / RH
+  if (d.includes("salário") || d.includes("salario") || d.includes("folha") || d.includes("rescisão") || d.includes("rescisao") || d.includes("férias") || d.includes("ferias") || d.includes("13°") || d.includes("décimo")) return "PESSOAL";
+  // Alimentação
+  if (d.includes("alimenta") || d.includes("refeição") || d.includes("refeicao") || d.includes("marmita") || d.includes("restaurante") || d.includes("lanch")) return "ALIMENTAÇÃO";
+  // Seguro
+  if (d.includes("seguro")) return "SEGUROS";
+  // Manutenção
+  if (d.includes("manutenção") || d.includes("manutencao") || d.includes("reparo") || d.includes("conserto")) return "MANUTENÇÃO";
+  // Contabilidade / Serviços
+  if (d.includes("contab") || d.includes("contador") || d.includes("honorário") || d.includes("honorario") || d.includes("consultoria")) return "SERVIÇOS";
+  // Pix / Transferências genéricas
+  if (d.includes("pix ") || d.includes("transferência") || d.includes("transferencia")) return "TRANSFERÊNCIAS";
+
+  return "OUTROS";
+}
+
+// ---------------------------------------------------------------------------
 // Excel row parsing
 // ---------------------------------------------------------------------------
 
@@ -268,6 +307,13 @@ export async function syncExpensesFromSharePoint(
     let totalRecordsRead = 0;
     let recordsWritten = 0;
 
+    // Build a map of worksheet names for push-back (preserves exact SP names including trailing spaces)
+    const wsNameMap = new Map<number, string>();
+    for (const wsName of worksheets) {
+      const parsed = parseWorksheetName(wsName);
+      if (parsed) wsNameMap.set(parsed.month, wsName); // Keep exact name from SharePoint
+    }
+
     for (const wsName of worksheets) {
       const parsed = parseWorksheetName(wsName);
       // If month/year filter is set, skip worksheets that don't match
@@ -281,8 +327,10 @@ export async function syncExpensesFromSharePoint(
       try {
         const result = await readExcelWorksheetFromFile(EXPENSES_FILE_ID, wsName);
         values = result.values;
-      } catch {
-        continue; // Skip worksheets that fail to read
+      } catch (err: any) {
+        // Skip worksheets that fail — don't abort entire sync
+        console.error(`Skipping worksheet "${wsName}": ${err.message}`);
+        continue;
       }
 
       const expenseRows = parseExpenseRows(values);
@@ -311,7 +359,7 @@ export async function syncExpensesFromSharePoint(
         });
 
         const expenseData = {
-          category: "DESPESA", // Default category
+          category: classifyExpenseCategory(row.description),
           description: row.description,
           value: row.value,
           paidValue: row.updatedValue || null,
@@ -388,7 +436,18 @@ export async function syncExpensesToSharePoint(
       orderBy: { date: "asc" },
     });
 
-    const worksheetName = `${monthToPortuguese(month)} ${year}`;
+    // Use exact worksheet name from SharePoint (may have trailing spaces or special chars)
+    let worksheetName = `${monthToPortuguese(month)} ${year}`;
+    try {
+      const allWs = await listWorksheetsFromFile(EXPENSES_FILE_ID);
+      const matchingWs = allWs.find((ws) => {
+        const parsed = parseWorksheetName(ws);
+        return parsed && parsed.month === month && parsed.year === year;
+      });
+      if (matchingWs) worksheetName = matchingWs; // Use exact name from SharePoint
+    } catch {
+      // Use constructed name as fallback
+    }
 
     const header = [
       "NOTA FISCAL",
@@ -455,8 +514,15 @@ export async function fullExpensesBidirectionalSync(
   month: number,
   year: number
 ) {
-  // Pull from SharePoint first, then push local changes back
-  const pullResult = await syncExpensesFromSharePoint(companyId, month, year);
-  const pushResult = await syncExpensesToSharePoint(companyId, month, year);
+  // Pull ALL worksheets from SharePoint (not just the filtered month)
+  const pullResult = await syncExpensesFromSharePoint(companyId, undefined, year);
+  // Push only the specific month back
+  let pushResult = { success: true, recordsWritten: 0 };
+  try {
+    pushResult = await syncExpensesToSharePoint(companyId, month, year);
+  } catch (err: any) {
+    console.error(`Push failed for month ${month}: ${err.message}`);
+    pushResult = { success: false, recordsWritten: 0 } as any;
+  }
   return { pull: pullResult, push: pushResult };
 }
