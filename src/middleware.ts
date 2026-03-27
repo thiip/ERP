@@ -5,7 +5,7 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public routes
-  if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
+  if (pathname.startsWith("/login") || pathname.startsWith("/api/auth") || pathname.startsWith("/api/sync")) {
     return NextResponse.next();
   }
 
