@@ -6,6 +6,10 @@ RUN npm ci
 
 COPY . .
 RUN npx prisma generate
+
+# Ensure .prisma client is also available in default location
+RUN cp -r /app/src/generated/prisma /app/node_modules/.prisma/client 2>/dev/null || true
+
 RUN npm run build
 
 FROM node:20-slim
