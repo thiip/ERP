@@ -482,6 +482,45 @@ export async function getFinancialDashboard(year: number) {
     });
   }
 
+  // Add salary data
+  const salaries = await prisma.salary.findMany({
+    where: {
+      companyId,
+      referenceYear: year,
+    },
+    select: {
+      grossAmount: true,
+      netAmount: true,
+      referenceMonth: true,
+      isPaid: true,
+      employee: { select: { name: true } },
+    },
+  });
+
+  for (const sal of salaries) {
+    const val = Number(sal.grossAmount);
+    const month = sal.referenceMonth - 1; // 0-indexed
+
+    totalDespesas += val;
+    if (sal.isPaid) {
+      totalPago += val;
+      monthlyPaid[month] += val;
+    } else {
+      totalPendente += val;
+      monthlyPending[month] += val;
+    }
+    if (val > maiorDespesa) maiorDespesa = val;
+
+    categoryMap.set("Salários", (categoryMap.get("Salários") || 0) + val);
+
+    transactions.push({
+      date: `01/${String(sal.referenceMonth).padStart(2, "0")}/${year}`,
+      description: `Salário - ${sal.employee.name}`,
+      value: val,
+      status: sal.isPaid ? "Pago" : "Pendente",
+    });
+  }
+
   // Sort transactions by value descending
   transactions.sort((a, b) => b.value - a.value);
 

@@ -98,6 +98,7 @@ const sections: NavSection[] = [
       { name: "Vendas", href: "/erp/sales", icon: ShoppingBag },
       { name: "Faturas", href: "/erp/invoices", icon: FileText },
       { name: "Despesas", href: "/erp/expenses", icon: Receipt },
+      { name: "Salarios", href: "/erp/salaries", icon: Users, badge: "Novo" },
       { name: "Contratos", href: "/erp/contracts", icon: ClipboardList },
       { name: "Historico", href: "/erp/history", icon: History },
       { name: "Relatorios", href: "/erp/reports", icon: BarChart3 },

@@ -73,6 +73,11 @@ model Company {
   // Chat
   chatMessages      ChatMessage[]
   chatReadReceipts  ChatReadReceipt[]
+
+  // Salary
+  employees           Employee[]
+  salaries            Salary[]
+  sharepointSyncLogs  SharePointSyncLog[]
 }
 
 model User {
@@ -511,6 +516,7 @@ model BankAccount {
   transfersTo     FinancialTransfer[] @relation("TransferTo")
   invoices        Invoice[]       @relation("InvoiceBankAccount")
   expenses        Expense[]       @relation("ExpenseBankAccount")
+  salaries        Salary[]
 }
 
 model BankTransaction {
@@ -605,6 +611,7 @@ model FinancialCategory {
   transactions    BankTransaction[]
   invoices        Invoice[]           @relation("InvoiceCategory")
   expenses        Expense[]           @relation("ExpenseCategory")
+  salaries        Salary[]
 }
 
 model CostCenter {
@@ -620,6 +627,8 @@ model CostCenter {
   transactions    BankTransaction[]
   invoices        Invoice[]         @relation("InvoiceCostCenter")
   expenses        Expense[]         @relation("ExpenseCostCenter")
+  employees       Employee[]
+  salaries        Salary[]
 }
 
 model FinancialHistory {
@@ -1534,4 +1543,112 @@ model ChatReadReceipt {
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@id([userId, companyId])
+}
+
+// ==================== SALARY ====================
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum SalaryType {
+  MONTHLY
+  THIRTEENTH
+  VACATION
+  BONUS
+  ADVANCE
+}
+
+enum SyncDirection {
+  TO_SHAREPOINT
+  FROM_SHAREPOINT
+  BIDIRECTIONAL
+}
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CONFLICT
+}
+
+model Employee {
+  id              String         @id @default(cuid())
+  companyId       String
+  name            String
+  cpf             String?
+  position        String?
+  department      String?
+  hireDate        DateTime?
+  terminationDate DateTime?
+  baseSalary      Decimal        @default(0) @db.Decimal(12, 2)
+  status          EmployeeStatus @default(ACTIVE)
+  costCenterId    String?
+  notes           String?
+  externalRowIndex Int?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  costCenter CostCenter? @relation(fields: [costCenterId], references: [id])
+  salaries   Salary[]
+
+  @@unique([companyId, cpf])
+  @@index([companyId])
+}
+
+model Salary {
+  id              String      @id @default(cuid())
+  companyId       String
+  employeeId      String
+  type            SalaryType  @default(MONTHLY)
+  referenceMonth  Int
+  referenceYear   Int
+  grossAmount     Decimal     @default(0) @db.Decimal(12, 2)
+  deductions      Decimal     @default(0) @db.Decimal(12, 2)
+  netAmount       Decimal     @default(0) @db.Decimal(12, 2)
+  isPaid          Boolean     @default(false)
+  paidAt          DateTime?
+  paymentDate     DateTime?
+  bankAccountId   String?
+  categoryId      String?
+  costCenterId    String?
+  notes           String?
+  sharepointRowHash String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  company           Company            @relation(fields: [companyId], references: [id])
+  employee          Employee           @relation(fields: [employeeId], references: [id])
+  bankAccount       BankAccount?       @relation(fields: [bankAccountId], references: [id])
+  financialCategory FinancialCategory? @relation(fields: [categoryId], references: [id])
+  costCenter        CostCenter?        @relation(fields: [costCenterId], references: [id])
+
+  @@unique([companyId, employeeId, type, referenceMonth, referenceYear])
+  @@index([companyId])
+  @@index([employeeId])
+}
+
+model SharePointSyncLog {
+  id              String        @id @default(cuid())
+  companyId       String
+  direction       SyncDirection
+  status          SyncStatus    @default(PENDING)
+  recordsRead     Int           @default(0)
+  recordsWritten  Int           @default(0)
+  conflicts       Int           @default(0)
+  conflictDetails Json?
+  errorMessage    String?
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
 }
