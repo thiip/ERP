@@ -269,7 +269,7 @@ export function AppSidebar({
       <div className="flex items-center gap-3 px-5 py-5 shrink-0">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden">
           <img
-            src="/projectum-erp/logo-icon.png"
+            src="/logo-icon.png"
             alt="P"
             className="h-full w-full object-cover"
           />

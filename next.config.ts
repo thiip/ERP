@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  basePath: "/projectum-erp",
   env: {
-    NEXT_PUBLIC_BASE_PATH: "/projectum-erp",
+    NEXT_PUBLIC_BASE_PATH: "",
   },
   typescript: {
     ignoreBuildErrors: true,

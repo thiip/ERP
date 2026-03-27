@@ -48,7 +48,7 @@ export default function LoginPage() {
 
         <div className="max-w-md space-y-8 relative z-10 flex flex-col items-center text-center">
           <div className="space-y-4 flex flex-col items-center">
-            <img src="/projectum-erp/logo-branco.png" alt="Projectum" className="h-32 w-auto mb-6 brightness-[1.3] contrast-[1.1]" />
+            <img src="/logo-branco.png" alt="Projectum" className="h-32 w-auto mb-6 brightness-[1.3] contrast-[1.1]" />
             <div className="h-[2px] w-12 bg-gradient-to-r from-transparent via-green-400/40 to-transparent rounded-full" />
           </div>
           <p className="text-lg text-white/45 leading-relaxed">
@@ -80,7 +80,7 @@ export default function LoginPage() {
       <div className="login-form-panel flex w-full lg:w-1/2 items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-sm space-y-8">
           <div className="lg:hidden mb-4">
-            <img src="/projectum-erp/logo-verde.png" alt="Projectum" className="h-14 w-auto" />
+            <img src="/logo-verde.png" alt="Projectum" className="h-14 w-auto" />
           </div>
 
           <div className="space-y-2">

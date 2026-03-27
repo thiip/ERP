@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider basePath="/projectum-erp/api/auth">
+    <SessionProvider basePath="/api/auth">
       <ThemeProvider>
         <TooltipProvider>{children}</TooltipProvider>
       </ThemeProvider>
