@@ -109,6 +109,43 @@ export async function listWorksheets(): Promise<string[]> {
   return (result.value || []).map((ws: any) => ws.name as string);
 }
 
+// ---------------------------------------------------------------------------
+// Generic file-based functions (accept fileId parameter for multi-file sync)
+// ---------------------------------------------------------------------------
+
+export async function readExcelWorksheetFromFile(
+  fileId: string,
+  worksheetName?: string
+): Promise<{ values: string[][]; address: string }> {
+  const client = getGraphClient();
+  const ws = worksheetName || WORKSHEET;
+  const result = await client
+    .api(`/drives/${DRIVE_ID}/items/${fileId}/workbook/worksheets/${ws}/usedRange`)
+    .get();
+  return { values: result.values || [], address: result.address || "" };
+}
+
+export async function writeExcelRangeToFile(
+  fileId: string,
+  range: string,
+  values: (string | number | null)[][],
+  worksheetName?: string
+): Promise<void> {
+  const client = getGraphClient();
+  const ws = worksheetName || WORKSHEET;
+  await client
+    .api(`/drives/${DRIVE_ID}/items/${fileId}/workbook/worksheets/${ws}/range(address='${range}')`)
+    .patch({ values });
+}
+
+export async function listWorksheetsFromFile(fileId: string): Promise<string[]> {
+  const client = getGraphClient();
+  const result = await client
+    .api(`/drives/${DRIVE_ID}/items/${fileId}/workbook/worksheets`)
+    .get();
+  return (result.value || []).map((ws: any) => ws.name as string);
+}
+
 export function isGraphConfigured(): boolean {
   return !!(
     process.env.AZURE_AD_CLIENT_ID &&
