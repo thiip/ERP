@@ -4,8 +4,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import type { SessionUser } from "@/types/auth";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/projectum-erp";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
+  basePath: `${basePath}/api/auth`,
   providers: [
     Credentials({
       name: "credentials",
