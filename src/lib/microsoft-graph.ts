@@ -101,6 +101,14 @@ export async function closeExcelSession(sessionId: string): Promise<void> {
     .post({});
 }
 
+export async function listWorksheets(): Promise<string[]> {
+  const client = getGraphClient();
+  const result = await client
+    .api(`/drives/${DRIVE_ID}/items/${FILE_ID}/workbook/worksheets`)
+    .get();
+  return (result.value || []).map((ws: any) => ws.name as string);
+}
+
 export function isGraphConfigured(): boolean {
   return !!(
     process.env.AZURE_AD_CLIENT_ID &&
